@@ -29,11 +29,11 @@ func get_input():
 	if Input.is_action_pressed('move_up'):
     	raw_velocity.y -= 1
 	act_velocity = raw_velocity.normalized() * speed
+	if Input.is_action_pressed("sprint"):
+		act_velocity *= 2
 	
 	look_at(get_global_mouse_position())
-	
-	position.x = clamp(position.x, 0+player_size, screen_size.x-player_size)
-	position.y = clamp(position.y, 0+player_size, screen_size.y-player_size)
+
 
 func _physics_process(delta):
 	get_input()

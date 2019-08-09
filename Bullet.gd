@@ -11,7 +11,7 @@ func _ready():
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 #func _process(delta):
 #	pass
-export (int) var bullet_speed = 500
+export (int) var bullet_speed = 1000
 
 var velocity = Vector2(bullet_speed,0)
 
