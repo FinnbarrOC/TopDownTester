@@ -3,10 +3,14 @@ signal shoot(bullet,direction,location)
 # Declare member variables here. Examples:
 # var a = 2
 # var b = "text"
+var points = 0
+var bulletcount= 1000
 var screen_size
 export (float) var player_size = 26
 # Called when the node enters the scene tree for the first time.
 func _ready():
+	load_game()
+	save_game()
 	screen_size = get_viewport_rect().size
 	pass # Replace with function body.
 
@@ -14,7 +18,7 @@ func _ready():
 #func _process(delta):
 #	pass
 export (int) var speed = 200
-
+var Bullet = preload("res://Bullet.tscn")
 var raw_velocity = Vector2()
 var act_velocity = Vector2()
 
@@ -37,14 +41,88 @@ func get_input():
 
 func _physics_process(delta):
 	get_input()
-	act_velocity = move_and_slide(act_velocity)
+	position.y = clamp(position.y, 0, screen_size.y)
+	position.x = clamp(position.x, 0, screen_size.x)
+	get_parent().get_node("Label").text = String(bulletcount) + " bullets " + String(points) + " points"
+	var collision = move_and_collide(act_velocity * delta)
+	if collision:
+		act_velocity = act_velocity.slide(collision.normal)
+		move_and_collide(act_velocity*delta)
 	if Input.is_action_pressed("left_click"):
 		var bullet_position = Vector2()
 		bullet_position = (position) + Vector2(player_size*cos(rotation), player_size*sin(rotation))
 		emit_signal("shoot", Bullet, rotation, bullet_position)
+	var temp = true
+	for i in range (get_parent().get_child_count()):
+		if "Enemy" in get_parent().get_child(i).get_name():
+			temp = false
+	if temp:
+		win()
+
+func enemy_hit():
+	lose()
+
+func lose():
+	save_game()
+	get_tree().quit()
+
+
+func win():
+	points+=1
+	save_game()
+	get_tree().quit()
+
+func get_pos():
+	return position
 
 
 
-var Bullet = preload("res://Bullet.tscn")
+func save():
+	var save_dict = {
+		"filename" : get_filename(),
+		"parent" : get_parent().get_path(),
+		"pos_x" : position.x, # Vector2 is not supported by JSON
+		"pos_y" : position.y,
+		"points" : points,
+		"bulletcount" : bulletcount
+	}
+	return save_dict
 
-	
+func save_game():
+	var save_game = File.new()
+	save_game.open("user://savegame.save", File.WRITE)
+	var save_nodes = get_tree().get_nodes_in_group("Persist")
+	for i in save_nodes:
+		var node_data = i.call("save");
+		save_game.store_line(to_json(node_data))
+	save_game.close()
+
+func load_game():
+	var save_game = File.new()
+	if not save_game.file_exists("user://savegame.save"):
+		return # Error! We don't have a save to load.
+
+    # We need to revert the game state so we're not cloning objects
+    # during loading. This will vary wildly depending on the needs of a
+    # project, so take care with this step.
+    # For our example, we will accomplish this by deleting saveable objects.
+   # var save_nodes = get_tree().get_nodes_in_group("Persist")
+    #for i in save_nodes:
+     #   i.queue_free()
+
+    # Load the file line by line and process that dictionary to restore
+    # the object it represents.
+	save_game.open("user://savegame.save", File.READ)
+	while not save_game.eof_reached():
+		var current_line = parse_json(save_game.get_line())
+        # Firstly, we need to create the object and add it to the tree and set its position.
+        #var new_object = load(current_line["filename"]).instance()
+        #get_node(current_line["parent"]).add_child(new_object)
+        #new_object.position = Vector2(current_line["pos_x"], current_line["pos_y"])
+        # Now we set the remaining variables.
+		if not current_line==null:
+			for i in current_line.keys():
+				if i == "filename" or i == "parent" or i == "pos_x" or i == "pos_y":
+					continue
+				self.set(i, current_line[i])
+	save_game.close()
