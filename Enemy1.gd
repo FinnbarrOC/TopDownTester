@@ -24,6 +24,6 @@ func _physics_process(delta):
 		velocity = velocity.slide(collision.normal) 
 		move_and_collide(velocity*delta)
 		if collision.collider.has_method("enemy_hit"):
-			collision.collider.enemy_hit()
+			collision.collider.enemy_hit(1)
 		
 
